@@ -1,0 +1,5 @@
+ALTER TABLE comments
+ALTER COLUMN post_id DROP DEFAULT,
+ALTER COLUMN user_id DROP DEFAULT,
+ALTER COLUMN post_id TYPE bigint,
+ALTER COLUMN user_id TYPE bigint;

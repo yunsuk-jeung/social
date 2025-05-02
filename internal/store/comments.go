@@ -8,7 +8,7 @@ import (
 type Comment struct {
 	ID        int64  `json:"id"`
 	PostID    int64  `json:"post_id"`
-	UserId    int64  `json:"user_id"`
+	UserID    int64  `json:"user_id"`
 	Content   string `json:"content"`
 	CreatedAt string `json:"created_at"`
 	User      User   `json:"user"`
@@ -33,6 +33,9 @@ func (s *CommentStore) GetByPostID(ctx context.Context, postID int64) ([]Comment
 		WHERE c.post_id = $1
 		ORDER BY c.created_at DESC;
 	`
+	ctx, cancle := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancle()
+
 	rows, err := s.db.QueryContext(ctx, query, postID)
 	if err != nil {
 		return nil, err
@@ -46,7 +49,7 @@ func (s *CommentStore) GetByPostID(ctx context.Context, postID int64) ([]Comment
 		err := rows.Scan(
 			&c.ID,
 			&c.PostID,
-			&c.UserId,
+			&c.UserID,
 			&c.Content,
 			&c.CreatedAt,
 			&c.User.Username,
@@ -58,4 +61,31 @@ func (s *CommentStore) GetByPostID(ctx context.Context, postID int64) ([]Comment
 		comments = append(comments, c)
 	}
 	return comments, nil
+}
+
+func (s *CommentStore) Create(ctx context.Context, comment *Comment) error {
+	query := `
+	INSERT INTO comments (post_id, user_id, content)
+	VALUES ($1, $2, $3)
+	RETURNING id, created_at
+	`
+	ctx, cancle := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancle()
+
+	err := s.db.QueryRowContext(
+		ctx,
+		query,
+		comment.PostID,
+		comment.UserID,
+		comment.Content,
+	).Scan(
+		&comment.ID,
+		&comment.CreatedAt,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
