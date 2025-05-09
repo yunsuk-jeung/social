@@ -5,6 +5,7 @@ import (
 
 	"github.com/yunsuk-jeung/social/internal/db"
 	"github.com/yunsuk-jeung/social/internal/env"
+	"github.com/yunsuk-jeung/social/internal/mailer"
 	"github.com/yunsuk-jeung/social/internal/store"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -31,8 +32,9 @@ const version = "0.0.1"
 // @description
 func main() {
 	cfg := config{
-		addr:   env.GetString("ADDR", ":3000"),
-		apiURL: env.GetString("EXTERNAL_URL", "localhost:3000"),
+		addr:        env.GetString("ADDR", ":3000"),
+		apiURL:      env.GetString("EXTERNAL_URL", "localhost:3000"),
+		frontendURL: env.GetString("FRONTEND_URL", "http://localhost:4000"),
 		db: dbConfig{
 			addr:         env.GetString("DB_ADDR", "postgres://admin:adminpassword@localhost/social?sslmode=disable"),
 			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONNS", 30),
@@ -41,7 +43,11 @@ func main() {
 		},
 		env: env.GetString("ENV", "development"),
 		mail: mailConfig{
-			exp: time.Hour * 24 * 3, // 3days
+			exp:       time.Hour * 24 * 3, // 3days
+			fromEmail: env.GetString("FROM_EMAIL", ""),
+			sendGrid: sendGridConfig{
+				apikey: env.GetString("SENDGRID_API_KEY", ""),
+			},
 		},
 	}
 
@@ -73,14 +79,20 @@ func main() {
 		logger.Fatal(err)
 	}
 
-	store := store.NewStorage(db)
 	defer db.Close()
 	logger.Info("database connection pool established")
+
+	store := store.NewStorage(db)
+
+	mailer := mailer.NewSendgrid(cfg.mail.sendGrid.apikey, cfg.mail.fromEmail)
+	logger.Info(cfg.mail.sendGrid.apikey)
+	logger.Info(cfg.mail.fromEmail)
 
 	app := &application{
 		config: cfg,
 		store:  store,
 		logger: logger,
+		mailer: mailer,
 	}
 
 	mux := app.mount()
