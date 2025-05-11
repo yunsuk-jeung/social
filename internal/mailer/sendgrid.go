@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
-	"log"
 	"time"
 
+	"github.com/sendgrid/rest"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
@@ -27,7 +27,7 @@ func NewSendgrid(apiKey, fromEmail string) *SendGridMailer {
 	}
 }
 
-func (m *SendGridMailer) Send(templateFile, username, email string, data any, isSandbox bool) error {
+func (m *SendGridMailer) Send(templateFile, username, email string, data any, isSandbox bool) (int, error) {
 	from := mail.NewEmail(FromName, m.fromEmail)
 	to := mail.NewEmail(username, email)
 
@@ -35,21 +35,21 @@ func (m *SendGridMailer) Send(templateFile, username, email string, data any, is
 	tmpl, err := template.ParseFS(FS, "templates/"+templateFile)
 
 	if err != nil {
-		return err
+		return -1, err
 	}
 
 	subject := new(bytes.Buffer)
 
 	err = tmpl.ExecuteTemplate(subject, "subject", data)
 	if err != nil {
-		return err
+		return -1, err
 	}
 
 	body := new(bytes.Buffer)
 
 	err = tmpl.ExecuteTemplate(body, "body", data)
 	if err != nil {
-		return err
+		return -1, err
 	}
 
 	message := mail.NewSingleEmail(from, subject.String(), to, "", body.String())
@@ -60,20 +60,19 @@ func (m *SendGridMailer) Send(templateFile, username, email string, data any, is
 		},
 	})
 
-	for i := 0; i < maxRetries; i++ {
-		response, err := m.client.Send(message)
-		if err != nil {
-			log.Printf("Failed to send email to %v, attempt %d of %d", email, i+1, maxRetries)
-			log.Printf("Error: %v", err.Error())
-
+	var retryErr error
+	for i := range maxRetries {
+		var response *rest.Response
+		response, retryErr = m.client.Send(message)
+		if retryErr != nil {
+			// if retryErr == nil {
 			// exponential backoff
 			time.Sleep(time.Second * time.Duration(i+1))
 			continue
 		}
 
-		log.Printf("Email sent with status code %v", response.StatusCode)
-		return nil
+		return response.StatusCode, nil
 	}
 
-	return fmt.Errorf("failed to send email after %d attempt", maxRetries)
+	return -1, fmt.Errorf("failed to send email after %d attempt, error: %v", maxRetries, retryErr)
 }

@@ -34,7 +34,7 @@ func main() {
 	cfg := config{
 		addr:        env.GetString("ADDR", ":3000"),
 		apiURL:      env.GetString("EXTERNAL_URL", "localhost:3000"),
-		frontendURL: env.GetString("FRONTEND_URL", "http://localhost:4000"),
+		frontendURL: env.GetString("FRONTEND_URL", "http://localhost:5173"),
 		db: dbConfig{
 			addr:         env.GetString("DB_ADDR", "postgres://admin:adminpassword@localhost/social?sslmode=disable"),
 			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONNS", 30),
@@ -85,8 +85,6 @@ func main() {
 	store := store.NewStorage(db)
 
 	mailer := mailer.NewSendgrid(cfg.mail.sendGrid.apikey, cfg.mail.fromEmail)
-	logger.Info(cfg.mail.sendGrid.apikey)
-	logger.Info(cfg.mail.fromEmail)
 
 	app := &application{
 		config: cfg,
