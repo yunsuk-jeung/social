@@ -50,7 +50,6 @@ func (app *application) AuthTokenMiddleware(next http.Handler) http.Handler {
 
 		ctx = context.WithValue(ctx, userCtx, user)
 		next.ServeHTTP(w, r.WithContext(ctx))
-
 	})
 }
 
