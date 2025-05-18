@@ -21,15 +21,34 @@ const userCtx userKey = "user"
 //	@Tags			users
 //	@Accept			json
 //	@Produce		json
-//	@Param			id	path		int	true	"User ID"
+//	@Param			userID	path		int	true	"User ID"
 //	@Success		200	{object}	store.User
 //	@Failure		400	{object}	error
 //	@Failure		404	{object}	error
 //	@Failure		500	{object}	error
 //	@Security		ApiKeyAuth
-//	@Router			/users/{id} [get]
+//	@Router			/users/{userID} [get]
 func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
-	user := getUserFromCtx(r)
+
+	userID, err := strconv.ParseInt(chi.URLParam(r, "userID"), 10, 64)
+
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	user, err := app.getUser(r.Context(), userID)
+
+	if err != nil {
+		switch err {
+		case store.ErrNotFound:
+			app.notFoundResponse(w, r, err)
+			return
+		default:
+			app.internalServerError(w, r, err)
+			return
+		}
+	}
 
 	if err := app.jsonResponse(w, http.StatusOK, user); err != nil {
 		app.internalServerError(w, r, err)
@@ -119,7 +138,7 @@ func (app *application) unfollowUserHandler(w http.ResponseWriter, r *http.Reque
 //	@Tags			users
 //	@Produce		json
 //	@Param			token	path		string	true	"Invitation token"
-//	@Success		204		{object}	string	"User activated"
+//	@Success		204		"User activated"
 //	@Failure		400		{object}	error
 //	@Failure		500		{object}	error
 //	@Security		ApiKeyAuth

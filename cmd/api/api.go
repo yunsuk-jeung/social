@@ -13,12 +13,14 @@ import (
 	"github.com/yunsuk-jeung/social/internal/auth"
 	"github.com/yunsuk-jeung/social/internal/mailer"
 	"github.com/yunsuk-jeung/social/internal/store"
+	"github.com/yunsuk-jeung/social/internal/store/cache"
 	"go.uber.org/zap"
 )
 
 type application struct {
 	config        config
 	store         store.Storage
+	cacheStorage  cache.Storage
 	logger        *zap.SugaredLogger
 	mailer        mailer.Client
 	authenticator auth.Authenticator
@@ -32,6 +34,14 @@ type config struct {
 	frontendURL string
 	mail        mailConfig
 	auth        authConfig
+	redis       redisConfig
+}
+
+type redisConfig struct {
+	addr    string
+	pw      string
+	db      int
+	enabled bool
 }
 
 type authConfig struct {
@@ -102,8 +112,8 @@ func (app *application) mount() http.Handler {
 				r.Use(app.postsContextMiddleware)
 
 				r.Get("/", app.getPostHandler)
-				r.Delete("/", app.deletePostHandler)
-				r.Patch("/", app.updatePostHandler)
+				r.Patch("/", app.checkPostOwnership("moderator", app.updatePostHandler))
+				r.Delete("/", app.checkPostOwnership("admin", app.deletePostHandler))
 			})
 		})
 

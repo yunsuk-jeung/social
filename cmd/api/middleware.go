@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/yunsuk-jeung/social/internal/store"
 )
 
 func (app *application) AuthTokenMiddleware(next http.Handler) http.Handler {
@@ -42,7 +43,7 @@ func (app *application) AuthTokenMiddleware(next http.Handler) http.Handler {
 
 		ctx := r.Context()
 
-		user, err := app.store.Users.GetByID(r.Context(), userID)
+		user, err := app.getUser(ctx, userID)
 		if err != nil {
 			app.unauthorizedResponse(w, r, err)
 			return
@@ -90,4 +91,64 @@ func (app *application) BasicAuthMiddleware() func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func (app *application) checkPostOwnership(requiredRole string, next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := getUserFromCtx(r)
+		post := getPostFromCtx(r)
+
+		if post.UserID == user.ID {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		allowed, err := app.checkRolePrecedence(r.Context(), user, requiredRole)
+
+		if err != nil {
+			app.internalServerError(w, r, err)
+			return
+		}
+
+		if !allowed {
+			app.forbiddenResponse(w, r)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (app *application) checkRolePrecedence(ctx context.Context, user *store.User, requiredRoleName string) (bool, error) {
+	requiredRole, err := app.store.Roles.GetByName(ctx, requiredRoleName)
+	if err != nil {
+		return false, err
+	}
+
+	return user.Role.Level >= requiredRole.Level, nil
+}
+
+func (app *application) getUser(ctx context.Context, userID int64) (*store.User, error) {
+	// app.logger.Infow("cache hit", "key", "user", "id", userID)
+	if !app.config.redis.enabled {
+		return app.store.Users.GetByID(ctx, userID)
+	}
+
+	user, err := app.cacheStorage.Users.Get(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if user == nil {
+		// app.logger.Infow("fetching from DB", "id", userID)
+		user, err = app.store.Users.GetByID(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		if err := app.cacheStorage.Users.Set(ctx, user); err != nil {
+			return nil, err
+		}
+	}
+	return user, nil
+
 }
