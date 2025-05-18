@@ -8,6 +8,7 @@ import (
 	"github.com/yunsuk-jeung/social/internal/db"
 	"github.com/yunsuk-jeung/social/internal/env"
 	"github.com/yunsuk-jeung/social/internal/mailer"
+	"github.com/yunsuk-jeung/social/internal/ratelimiter"
 	"github.com/yunsuk-jeung/social/internal/store"
 	"github.com/yunsuk-jeung/social/internal/store/cache"
 	"go.uber.org/zap"
@@ -69,6 +70,11 @@ func main() {
 				iss:    "gophersocial",
 			},
 		},
+		rateLimiter: ratelimiter.Config{
+			RequestsPerTimeFrame: env.GetInt("RATELIMITER_REQUESTS_COUNT", 20),
+			TimeFrame:            time.Second * 5,
+			Enabled:              env.GetBool("RATE_LIMITER_ENABLED", true),
+		},
 	}
 
 	// Logger
@@ -110,6 +116,12 @@ func main() {
 	}
 	cacheStorage := cache.NewRedisStorage(rdb)
 
+	// Rate limiter
+	rateLimiter := ratelimiter.NewFixedWindowLimiter(
+		cfg.rateLimiter.RequestsPerTimeFrame,
+		cfg.rateLimiter.TimeFrame,
+	)
+
 	store := store.NewStorage(db)
 
 	mailer := mailer.NewSendgrid(cfg.mail.sendGrid.apikey, cfg.mail.fromEmail)
@@ -123,6 +135,7 @@ func main() {
 		logger:        logger,
 		mailer:        mailer,
 		authenticator: jwtAuthenticator,
+		rateLimiter:   rateLimiter,
 	}
 
 	mux := app.mount()

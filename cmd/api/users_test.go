@@ -6,7 +6,8 @@ import (
 )
 
 func TestGetUser(t *testing.T) {
-	app := newTestApplication(t)
+
+	app := newTestApplication(t, config{})
 	mux := app.mount()
 
 	testToken, _ := app.authenticator.GenerateToken(nil)
@@ -33,7 +34,6 @@ func TestGetUser(t *testing.T) {
 		rr := exceteRequest(req, mux)
 
 		checkResponseCode(t, http.StatusOK, rr.Code)
-
 	})
 
 }

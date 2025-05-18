@@ -37,8 +37,15 @@ func writeJSONError(w http.ResponseWriter, status int, message string) error {
 }
 
 func (app *application) jsonResponse(w http.ResponseWriter, status int, data any) error {
+
+	if status == http.StatusNoContent || data == nil {
+		w.WriteHeader(status)
+		return nil
+	}
+
 	type envelope struct {
 		Data any `json:"data"`
 	}
+
 	return writeJSON(w, status, &envelope{Data: data})
 }
