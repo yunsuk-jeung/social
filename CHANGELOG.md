@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.1](https://github.com/yunsuk-jeung/social/compare/v1.1.0...v1.1.1) (2025-05-18)
+
+
+### Bug Fixes
+
+* change set-out to github_output ([fb0cf9f](https://github.com/yunsuk-jeung/social/commit/fb0cf9f0c43fa6a8fc47a7d1bffbe3e6f4745a90))
+* var version to const version ([74fdd50](https://github.com/yunsuk-jeung/social/commit/74fdd50c1a456f0e5e74d8f8db1db21b5b618c9b))
+
 ## [1.1.0](https://github.com/yunsuk-jeung/social/compare/v1.0.0...v1.1.0) (2025-05-18)
 
 
