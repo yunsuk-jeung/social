@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/yunsuk-jeung/social/compare/v1.0.0...v1.1.0) (2025-05-18)
+
+
+### Features
+
+* update api version automatically ([1e48ab2](https://github.com/yunsuk-jeung/social/commit/1e48ab24255f3c56a5473d02d2e284ae46f7e8fe))
+
 ## 1.0.0 (2025-05-18)
 
 
