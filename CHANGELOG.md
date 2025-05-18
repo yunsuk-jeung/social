@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/yunsuk-jeung/social/compare/v1.1.1...v1.2.0) (2025-05-18)
+
+
+### Features
+
+* dockerfile ([69d6285](https://github.com/yunsuk-jeung/social/commit/69d6285078f8e3a8ff9d78cd47e4d3baf873e4e6))
+
 ## [1.1.1](https://github.com/yunsuk-jeung/social/compare/v1.1.0...v1.1.1) (2025-05-18)
 
 
